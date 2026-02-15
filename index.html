@@ -18,7 +18,7 @@
 
         * { 
             box-sizing: border-box; 
-            user-select: none; /* テキスト選択/カーソル出現を抑制 */
+            user-select: none;
             -webkit-user-select: none;
         }
 
@@ -34,6 +34,9 @@
             display: flex;
         }
 
+        /* =====================
+           PC LAYOUT (unchanged)
+        ===================== */
         .app-shell {
             display: grid;
             grid-template-columns: 1fr 380px;
@@ -41,7 +44,6 @@
             height: 100%;
         }
 
-        /* --- メインシミュレーター --- */
         .viewport {
             position: relative;
             background: radial-gradient(circle at center, #1e2022 0%, #0a0a0a 100%);
@@ -52,7 +54,7 @@
             display: block;
             width: 100%;
             height: 100%;
-            outline: none; /* フォーカス時の枠線を消す */
+            outline: none;
         }
 
         .header-info {
@@ -71,7 +73,14 @@
             text-transform: uppercase;
         }
 
-        /* --- コントロールパネル --- */
+        .header-info p {
+            margin: 6px 0 0;
+            font-size: 0.78rem;
+            color: #888;
+            letter-spacing: 0.5px;
+        }
+
+        /* コントロールパネル */
         .sidebar {
             background-color: var(--panel-bg);
             border-left: 1px solid var(--panel-border);
@@ -113,7 +122,6 @@
             cursor: help;
         }
 
-        /* 日本語説明用ツールチップ */
         .param-card::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -141,13 +149,23 @@
         .param-label { font-size: 0.6rem; color: #666; display: block; margin-bottom: 4px; font-weight: bold; }
         .param-value { font-size: 1.2rem; color: var(--main-blue); font-family: 'Courier New', monospace; font-weight: bold; }
 
-        /* --- Log Screen --- */
+        /* Log Screen */
         .log-container {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             padding: 25px;
             min-height: 0;
+        }
+
+        .log-container h3 {
+            margin: 0 0 12px 0;
+            font-size: 0.75rem;
+            color: var(--main-coral);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            flex-shrink: 0;
         }
 
         .log-screen {
@@ -173,7 +191,7 @@
         .msg-warn { color: var(--main-coral); }
         .msg-success { color: var(--accent-green); }
 
-        /* --- Actions --- */
+        /* Actions */
         .actions {
             padding: 25px;
             display: flex;
@@ -205,7 +223,7 @@
         button.primary:hover:not(:disabled) { background: var(--main-coral); color: #fff; }
         button:disabled { opacity: 0.1; cursor: not-allowed; }
 
-        /* 再生ボタン（オートパイロット） */
+        /* Autopilot (PC) */
         .auto-pilot-box {
             position: absolute;
             bottom: 30px;
@@ -248,11 +266,208 @@
             border-top: 1px solid #333;
             padding-top: 10px;
         }
+
+        /* =====================
+           MOBILE LAYOUT
+        ===================== */
+        @media (max-width: 768px) {
+
+            body {
+                height: 100dvh;
+                overflow: hidden;
+            }
+
+            .app-shell {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                height: 100dvh;
+                overflow: hidden;
+                grid-template-columns: none;
+            }
+
+            /* ---- Header (title + description) ---- */
+            .viewport {
+                flex: 0 0 auto;
+                position: relative;
+                background: radial-gradient(circle at center, #1e2022 0%, #0a0a0a 100%);
+                overflow: hidden;
+            }
+
+            /* Canvas takes up the viewport flex area */
+            #mainCanvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+
+            .header-info {
+                position: absolute;
+                top: 10px;
+                left: 12px;
+                right: 12px;
+                z-index: 10;
+                pointer-events: none;
+            }
+
+            .header-info h2 {
+                font-size: 0.85rem;
+                letter-spacing: 2px;
+                margin: 0 0 2px 0;
+            }
+
+            .header-info p {
+                font-size: 0.62rem;
+                color: #777;
+                margin: 0;
+                line-height: 1.3;
+            }
+
+            /* Autopilot - smaller, top-right */
+            .auto-pilot-box {
+                position: absolute;
+                bottom: 8px;
+                right: 10px;
+                gap: 6px;
+            }
+
+            .auto-pilot-box span {
+                font-size: 0.5rem !important;
+            }
+
+            #btnAuto {
+                width: 34px;
+                height: 34px;
+                font-size: 0.75rem;
+            }
+
+            .node-hint {
+                display: none;
+            }
+
+            /* ---- Sidebar becomes bottom panel ---- */
+            .sidebar {
+                flex: 1 1 0;
+                border-left: none;
+                border-top: 1px solid var(--panel-border);
+                box-shadow: none;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                min-height: 0;
+            }
+
+            /* ---- Training Monitor: 4 cards in 1 row ---- */
+            .sidebar-section {
+                padding: 8px 10px 8px;
+                border-bottom: 1px solid var(--panel-border);
+                flex-shrink: 0;
+            }
+
+            .sidebar-section h3 {
+                margin: 0 0 6px 0;
+                font-size: 0.6rem;
+                letter-spacing: 1.5px;
+            }
+
+            .params-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 6px;
+            }
+
+            .param-card {
+                padding: 6px 4px;
+                border-radius: 3px;
+            }
+
+            /* Disable tooltip on mobile (touch) */
+            .param-card::after {
+                display: none;
+            }
+
+            .param-label {
+                font-size: 0.48rem;
+                margin-bottom: 2px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .param-value {
+                font-size: 0.95rem;
+            }
+
+            /* ---- Process Log: fixed height ---- */
+            .log-container {
+                flex: 1 1 0;
+                padding: 8px 10px 6px;
+                min-height: 0;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .log-container h3 {
+                font-size: 0.6rem;
+                margin: 0 0 5px 0;
+                letter-spacing: 1.5px;
+                flex-shrink: 0;
+            }
+
+            .log-screen {
+                flex: 1 1 0;
+                min-height: 0;
+                font-size: 0.65rem;
+                padding: 8px 10px;
+                line-height: 1.5;
+            }
+
+            /* ---- Actions: 3 buttons in a horizontal row ---- */
+            .actions {
+                padding: 7px 10px 8px;
+                flex-direction: row;
+                gap: 6px;
+                flex-shrink: 0;
+                border-top: 1px solid var(--panel-border);
+                align-items: stretch;
+            }
+
+            .actions button {
+                flex: 1;
+                padding: 10px 4px;
+                font-size: 0.52rem;
+                letter-spacing: 0.5px;
+                gap: 5px;
+                flex-direction: column;
+                border-radius: 3px;
+                min-width: 0;
+            }
+
+            .actions button i {
+                font-size: 0.85rem;
+            }
+
+            /* Reset button - keep subtle style but same row */
+            #btnReset {
+                font-size: 0.48rem !important;
+                border: 1px solid #333 !important;
+                color: #555 !important;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-width: 375px) {
+            .param-label { font-size: 0.42rem; }
+            .param-value { font-size: 0.85rem; }
+            .actions button { font-size: 0.45rem; padding: 8px 3px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="app-shell">
+    <!-- ===== VIEWPORT / CANVAS AREA ===== -->
     <div class="viewport" id="viewport">
         <div class="header-info">
             <h2><i class="fas fa-brain"></i> Neural Matchbox</h2>
@@ -269,14 +484,27 @@
         <div class="node-hint">TIP: CLICK NODES TO TOGGLE INPUT</div>
     </div>
 
+    <!-- ===== SIDEBAR / CONTROL PANEL ===== -->
     <div class="sidebar">
         <div class="sidebar-section">
             <h3>Training Monitor</h3>
             <div class="params-grid">
-                <div class="param-card" data-tooltip="学習（重み調整）が行われた回数"><span class="param-label">EPOCH (LEARN)</span><span id="p-epoch" class="param-value">0</span></div>
-                <div class="param-card" data-tooltip="AIが判定を実行した総回数"><span class="param-label">TRIALS (RUN)</span><span id="p-trials" class="param-value">0</span></div>
-                <div class="param-card" data-tooltip="正解とのズレ。0に近いほど優秀です"><span class="param-label">LOSS</span><span id="p-loss" class="param-value">0.00</span></div>
-                <div class="param-card" data-tooltip="これまでの全試行における正解率"><span class="param-label">ACCURACY</span><span id="p-acc" class="param-value">0%</span></div>
+                <div class="param-card" data-tooltip="学習（重み調整）が行われた回数">
+                    <span class="param-label">EPOCH (LEARN)</span>
+                    <span id="p-epoch" class="param-value">0</span>
+                </div>
+                <div class="param-card" data-tooltip="AIが判定を実行した総回数">
+                    <span class="param-label">TRIALS (RUN)</span>
+                    <span id="p-trials" class="param-value">0</span>
+                </div>
+                <div class="param-card" data-tooltip="正解とのズレ。0に近いほど優秀です">
+                    <span class="param-label">LOSS</span>
+                    <span id="p-loss" class="param-value">0.00</span>
+                </div>
+                <div class="param-card" data-tooltip="これまでの全試行における正解率">
+                    <span class="param-label">ACCURACY</span>
+                    <span id="p-acc" class="param-value">0%</span>
+                </div>
             </div>
         </div>
 
@@ -302,7 +530,7 @@
  */
 const state = {
     inputs: [0, 0, 0],
-    lastTestedInputs: null, // 前回判定時の入力パターン
+    lastTestedInputs: null,
     weights: [Math.random()-0.5, Math.random()-0.5, Math.random()-0.5],
     threshold: Math.random(),
     output: 0,
@@ -322,6 +550,10 @@ const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 const COLORS = { coral: '#ff6b4a', blue: '#4ae0ff', bone: '#e0e0e0' };
 
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
 function init() {
     window.addEventListener('resize', resize);
     resize();
@@ -332,6 +564,10 @@ function init() {
 function resize() {
     const parent = canvas.parentElement;
     const rect = parent.getBoundingClientRect();
+
+    /* On mobile the viewport height is governed by CSS flex.
+       We need to explicitly set the viewport element height here
+       to get the correct canvas dimensions. */
     state.dpr = window.devicePixelRatio || 1;
     canvas.width = rect.width * state.dpr;
     canvas.height = rect.height * state.dpr;
@@ -341,11 +577,17 @@ function resize() {
 
     const cx = rect.width / 2;
     const cy = rect.height / 2;
-    state.scale = Math.max(0.7, Math.min(1.1, rect.width / 800));
-    
+
+    if (isMobile()) {
+        /* On mobile, compress the node layout to fit the smaller canvas */
+        state.scale = Math.max(0.45, Math.min(0.75, rect.width / 520));
+    } else {
+        state.scale = Math.max(0.7, Math.min(1.1, rect.width / 800));
+    }
+
     const spreadX = 200 * state.scale;
     const spreadY = 130 * state.scale;
-    
+
     state.nodes = [
         { x: cx - spreadX, y: cy - spreadY, label: 'A', idx: 0 },
         { x: cx - spreadX, y: cy,           label: 'B', idx: 1 },
@@ -363,10 +605,8 @@ function log(msg, type = 'msg-info') {
     screen.scrollTop = screen.scrollHeight;
 }
 
-// ボタンの状態をチェック
 function checkButtonStates() {
     const runBtn = document.getElementById('btnRun');
-    // 現在の入力が前回正解時と同じならPredict不可
     if (state.lastTestedInputs && state.inputs.every((v, i) => v === state.lastTestedInputs[i])) {
         runBtn.disabled = true;
     } else {
@@ -390,7 +630,7 @@ function predict() {
             const isCorrect = state.output === state.target;
             if(isCorrect) {
                 state.correctPredictions++;
-                state.lastTestedInputs = [...state.inputs]; // 正解したパターンを記録
+                state.lastTestedInputs = [...state.inputs];
             }
             
             state.isAnimating = false;
@@ -416,7 +656,7 @@ function train() {
     state.inputs.forEach((input, i) => { if(input === 1) state.weights[i] += error * lr; });
     state.threshold -= error * lr;
     state.epoch++;
-    state.lastTestedInputs = null; // 重みが変わったので再度同じパターンで判定可能にする
+    state.lastTestedInputs = null;
     log(`学習完了: 重み/閾値を調整 (Epoch ${state.epoch})`, 'msg-success');
     updateDisplay();
     document.getElementById('btnTrain').disabled = true;
@@ -424,9 +664,6 @@ function train() {
     return Promise.resolve();
 }
 
-/**
- * 自動操作機能
- */
 async function toggleAutoPilot() {
     state.isAuto = !state.isAuto;
     const btn = document.getElementById('btnAuto');
@@ -443,7 +680,6 @@ async function toggleAutoPilot() {
 }
 
 async function runAutoLoop() {
-    // 全8パターンの入力リスト
     const patterns = [
         [0,0,0], [1,0,0], [0,1,0], [0,0,1],
         [1,1,0], [1,0,1], [0,1,1], [1,1,1]
@@ -451,7 +687,6 @@ async function runAutoLoop() {
     let pIdx = 0;
 
     while(state.isAuto) {
-        // 現在の正解率をチェック
         const accuracy = state.totalPredictions > 0 ? (state.correctPredictions / state.totalPredictions) : 0;
         if (accuracy >= 0.85 && state.totalPredictions > 10) {
             log(`目標達成! 正解率: ${Math.floor(accuracy*100)}%`, "msg-success");
@@ -459,16 +694,13 @@ async function runAutoLoop() {
             break;
         }
 
-        // 入力パターンを切り替え
         state.inputs = [...patterns[pIdx]];
         state.lastTestedInputs = null; 
         updateDisplay();
         
-        // 判定実行
         const isCorrect = await predict();
         await new Promise(r => setTimeout(r, 400));
 
-        // 不正解なら学習
         if(!isCorrect && state.isAuto) {
             await train();
             await new Promise(r => setTimeout(r, 400));
@@ -568,24 +800,51 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-canvas.addEventListener('click', (e) => {
+/* ===== Input handling: click (PC) + touch (Mobile) ===== */
+function handleNodeToggle(clientX, clientY) {
     if(state.isAnimating || state.isAuto) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const hitRadius = isMobile() ? 52 * state.scale : 40 * state.scale;
     state.nodes.slice(0,3).forEach((n, i) => {
-        if(Math.hypot(n.x - x, n.y - y) < 40 * state.scale) {
+        if(Math.hypot(n.x - x, n.y - y) < hitRadius) {
             state.inputs[i] = state.inputs[i] === 1 ? 0 : 1;
             document.getElementById('btnTrain').disabled = true;
             checkButtonStates();
         }
     });
+}
+
+canvas.addEventListener('click', (e) => {
+    handleNodeToggle(e.clientX, e.clientY);
 });
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    handleNodeToggle(touch.clientX, touch.clientY);
+}, { passive: false });
 
 document.getElementById('btnRun').addEventListener('click', predict);
 document.getElementById('btnTrain').addEventListener('click', train);
 document.getElementById('btnReset').addEventListener('click', () => location.reload());
 document.getElementById('btnAuto').addEventListener('click', toggleAutoPilot);
+
+/* ===== Mobile: set viewport height dynamically ===== */
+function setMobileViewportHeight() {
+    if (!isMobile()) return;
+    const vh = window.innerHeight;
+    // Give canvas area ~40% of screen height
+    const viewportEl = document.getElementById('viewport');
+    viewportEl.style.height = Math.floor(vh * 0.40) + 'px';
+}
+
+window.addEventListener('resize', () => {
+    setMobileViewportHeight();
+    resize();
+});
+setMobileViewportHeight();
 
 init();
 </script>
