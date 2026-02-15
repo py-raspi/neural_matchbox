@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neural Core Lab - Deep Learning Sim</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f1011;
+            --main-bone: #e0e0e0;
+            --main-coral: #ff6b4a;
+            --main-blue: #4ae0ff;
+            --panel-bg: #1a1b1c;
+            --panel-border: #333;
+            --accent-green: #2ecc71;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            user-select: none; /* テキスト選択/カーソル出現を抑制 */
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--main-bone);
+            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .app-shell {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- メインシミュレーター --- */
+        .viewport {
+            position: relative;
+            background: radial-gradient(circle at center, #1e2022 0%, #0a0a0a 100%);
+            overflow: hidden;
+        }
+
+        #mainCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            outline: none; /* フォーカス時の枠線を消す */
+        }
+
+        .header-info {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .header-info h2 {
+            margin: 0;
+            color: var(--main-coral);
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* --- コントロールパネル --- */
+        .sidebar {
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .sidebar-section {
+            padding: 25px;
+            border-bottom: 1px solid var(--panel-border);
+            flex-shrink: 0;
+        }
+
+        .sidebar-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 0.75rem;
+            color: var(--main-coral);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        /* Params Grid & Tooltips */
+        .params-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .param-card {
+            background: #000;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #222;
+            position: relative;
+            cursor: help;
+        }
+
+        /* 日本語説明用ツールチップ */
+        .param-card::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--main-coral);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.2s;
+            z-index: 100;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .param-card:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: 100%;
+        }
+
+        .param-label { font-size: 0.6rem; color: #666; display: block; margin-bottom: 4px; font-weight: bold; }
+        .param-value { font-size: 1.2rem; color: var(--main-blue); font-family: 'Courier New', monospace; font-weight: bold; }
+
+        /* --- Log Screen --- */
+        .log-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+            min-height: 0;
+        }
+
+        .log-screen {
+            flex-grow: 1;
+            background: #050505;
+            border: 1px solid #222;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        .log-screen::-webkit-scrollbar { width: 6px; }
+        .log-screen::-webkit-scrollbar-track { background: #111; }
+        .log-screen::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .log-screen::-webkit-scrollbar-thumb:hover { background: var(--main-coral); }
+
+        .msg-sys { color: #555; }
+        .msg-info { color: #aaa; }
+        .msg-warn { color: var(--main-coral); }
+        .msg-success { color: var(--accent-green); }
+
+        /* --- Actions --- */
+        .actions {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+            border-top: 1px solid var(--panel-border);
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button:hover:not(:disabled) { background: #fff; color: #000; border-color: #fff; }
+        button.primary { border-color: var(--main-coral); color: var(--main-coral); }
+        button.primary:hover:not(:disabled) { background: var(--main-coral); color: #fff; }
+        button:disabled { opacity: 0.1; cursor: not-allowed; }
+
+        /* 再生ボタン（オートパイロット） */
+        .auto-pilot-box {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #btnAuto {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-green);
+            color: var(--accent-green);
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+        }
+        #btnAuto.active {
+            background: var(--accent-green);
+            color: #000;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+
+        .node-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            font-size: 0.75rem;
+            color: #555;
+            letter-spacing: 1px;
+            font-weight: bold;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <div class="viewport" id="viewport">
+        <div class="header-info">
+            <h2><i class="fas fa-brain"></i> Neural Matchbox</h2>
+            <p>2つ以上の入力ノードを活性化(ON)させた時に、出力ノードが発火するよう学習させてください。</p>
+        </div>
+        
+        <canvas id="mainCanvas" tabindex="1"></canvas>
+        
+        <div class="auto-pilot-box">
+            <span style="font-size: 0.6rem; color: var(--accent-green); font-weight: bold; letter-spacing: 1px;">AUTOPILOT</span>
+            <button id="btnAuto" title="自動学習を開始（目標正解率85%）"><i class="fas fa-play"></i></button>
+        </div>
+
+        <div class="node-hint">TIP: CLICK NODES TO TOGGLE INPUT</div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <h3>Training Monitor</h3>
+            <div class="params-grid">
+                <div class="param-card" data-tooltip="学習（重み調整）が行われた回数"><span class="param-label">EPOCH (LEARN)</span><span id="p-epoch" class="param-value">0</span></div>
+                <div class="param-card" data-tooltip="AIが判定を実行した総回数"><span class="param-label">TRIALS (RUN)</span><span id="p-trials" class="param-value">0</span></div>
+                <div class="param-card" data-tooltip="正解とのズレ。0に近いほど優秀です"><span class="param-label">LOSS</span><span id="p-loss" class="param-value">0.00</span></div>
+                <div class="param-card" data-tooltip="これまでの全試行における正解率"><span class="param-label">ACCURACY</span><span id="p-acc" class="param-value">0%</span></div>
+            </div>
+        </div>
+
+        <div class="log-container">
+            <h3><i class="fas fa-terminal"></i> Process Log</h3>
+            <div class="log-screen" id="logScreen">
+                <div class="msg-sys">Initializing Neural System...</div>
+                <div class="msg-sys">Ready.</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="btnRun" class="primary"><i class="fas fa-bolt"></i> Predict (判定実行)</button>
+            <button id="btnTrain" disabled><i class="fas fa-graduation-cap"></i> Backprop (誤差学習)</button>
+            <button id="btnReset" style="font-size: 0.6rem; border: none; color: #444;"><i class="fas fa-undo"></i> Reset System</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * State Management
+ */
+const state = {
+    inputs: [0, 0, 0],
+    lastTestedInputs: null, // 前回判定時の入力パターン
+    weights: [Math.random()-0.5, Math.random()-0.5, Math.random()-0.5],
+    threshold: Math.random(),
+    output: 0,
+    target: 0,
+    sum: 0,
+    epoch: 0,
+    totalPredictions: 0,
+    correctPredictions: 0,
+    isAnimating: false,
+    isAuto: false,
+    nodes: [],
+    scale: 1,
+    dpr: 1
+};
+
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const COLORS = { coral: '#ff6b4a', blue: '#4ae0ff', bone: '#e0e0e0' };
+
+function init() {
+    window.addEventListener('resize', resize);
+    resize();
+    updateDisplay();
+    animate();
+}
+
+function resize() {
+    const parent = canvas.parentElement;
+    const rect = parent.getBoundingClientRect();
+    state.dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * state.dpr;
+    canvas.height = rect.height * state.dpr;
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    ctx.scale(state.dpr, state.dpr);
+
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    state.scale = Math.max(0.7, Math.min(1.1, rect.width / 800));
+    
+    const spreadX = 200 * state.scale;
+    const spreadY = 130 * state.scale;
+    
+    state.nodes = [
+        { x: cx - spreadX, y: cy - spreadY, label: 'A', idx: 0 },
+        { x: cx - spreadX, y: cy,           label: 'B', idx: 1 },
+        { x: cx - spreadX, y: cy + spreadY, label: 'C', idx: 2 },
+        { x: cx + spreadX, y: cy,           label: 'D', idx: 3, isOut: true }
+    ];
+}
+
+function log(msg, type = 'msg-info') {
+    const screen = document.getElementById('logScreen');
+    const div = document.createElement('div');
+    div.className = type;
+    div.innerText = `> ${msg}`;
+    screen.appendChild(div);
+    screen.scrollTop = screen.scrollHeight;
+}
+
+// ボタンの状態をチェック
+function checkButtonStates() {
+    const runBtn = document.getElementById('btnRun');
+    // 現在の入力が前回正解時と同じならPredict不可
+    if (state.lastTestedInputs && state.inputs.every((v, i) => v === state.lastTestedInputs[i])) {
+        runBtn.disabled = true;
+    } else {
+        runBtn.disabled = state.isAnimating;
+    }
+}
+
+function predict() {
+    if(state.isAnimating) return Promise.reject();
+    state.isAnimating = true;
+    checkButtonStates();
+    log(`予測開始: 入力状態 [${state.inputs.join(', ')}]`);
+    
+    return new Promise(resolve => {
+        setTimeout(() => {
+            state.sum = state.inputs.reduce((acc, val, i) => acc + val * state.weights[i], 0);
+            state.output = state.sum > state.threshold ? 1 : 0;
+            state.target = (state.inputs.filter(v => v === 1).length >= 2) ? 1 : 0;
+            
+            state.totalPredictions++;
+            const isCorrect = state.output === state.target;
+            if(isCorrect) {
+                state.correctPredictions++;
+                state.lastTestedInputs = [...state.inputs]; // 正解したパターンを記録
+            }
+            
+            state.isAnimating = false;
+            document.getElementById('p-loss').innerText = Math.abs(state.target - (state.output)).toFixed(2);
+            
+            if(!isCorrect) {
+                log(`不正解: AI判定=${state.output}, 正解=${state.target}`, 'msg-warn');
+                document.getElementById('btnTrain').disabled = false;
+            } else {
+                log(`正解: AI判定=${state.output}`, 'msg-success');
+                document.getElementById('btnTrain').disabled = true;
+            }
+            updateDisplay();
+            checkButtonStates();
+            resolve(isCorrect);
+        }, 400);
+    });
+}
+
+function train() {
+    const error = state.target - state.output;
+    const lr = 0.3;
+    state.inputs.forEach((input, i) => { if(input === 1) state.weights[i] += error * lr; });
+    state.threshold -= error * lr;
+    state.epoch++;
+    state.lastTestedInputs = null; // 重みが変わったので再度同じパターンで判定可能にする
+    log(`学習完了: 重み/閾値を調整 (Epoch ${state.epoch})`, 'msg-success');
+    updateDisplay();
+    document.getElementById('btnTrain').disabled = true;
+    checkButtonStates();
+    return Promise.resolve();
+}
+
+/**
+ * 自動操作機能
+ */
+async function toggleAutoPilot() {
+    state.isAuto = !state.isAuto;
+    const btn = document.getElementById('btnAuto');
+    if(state.isAuto) {
+        btn.innerHTML = '<i class="fas fa-stop"></i>';
+        btn.classList.add('active');
+        log("オートパイロット起動: 目標正解率 85%", "msg-sys");
+        runAutoLoop();
+    } else {
+        btn.innerHTML = '<i class="fas fa-play"></i>';
+        btn.classList.remove('active');
+        log("オートパイロット停止", "msg-sys");
+    }
+}
+
+async function runAutoLoop() {
+    // 全8パターンの入力リスト
+    const patterns = [
+        [0,0,0], [1,0,0], [0,1,0], [0,0,1],
+        [1,1,0], [1,0,1], [0,1,1], [1,1,1]
+    ];
+    let pIdx = 0;
+
+    while(state.isAuto) {
+        // 現在の正解率をチェック
+        const accuracy = state.totalPredictions > 0 ? (state.correctPredictions / state.totalPredictions) : 0;
+        if (accuracy >= 0.85 && state.totalPredictions > 10) {
+            log(`目標達成! 正解率: ${Math.floor(accuracy*100)}%`, "msg-success");
+            toggleAutoPilot();
+            break;
+        }
+
+        // 入力パターンを切り替え
+        state.inputs = [...patterns[pIdx]];
+        state.lastTestedInputs = null; 
+        updateDisplay();
+        
+        // 判定実行
+        const isCorrect = await predict();
+        await new Promise(r => setTimeout(r, 400));
+
+        // 不正解なら学習
+        if(!isCorrect && state.isAuto) {
+            await train();
+            await new Promise(r => setTimeout(r, 400));
+        }
+
+        pIdx = (pIdx + 1) % patterns.length;
+        if(!state.isAuto) break;
+    }
+}
+
+function updateDisplay() {
+    document.getElementById('p-epoch').innerText = state.epoch;
+    document.getElementById('p-trials').innerText = state.totalPredictions;
+    document.getElementById('p-acc').innerText = state.totalPredictions > 0 
+        ? Math.floor((state.correctPredictions / state.totalPredictions) * 100) + "%" : "0%";
+}
+
+function animate() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    
+    const outNode = state.nodes[3];
+    const nodeRadius = 38 * state.scale;
+
+    // 1. コネクション
+    state.nodes.slice(0,3).forEach((n, i) => {
+        const w = state.weights[i];
+        const isActive = state.inputs[i] === 1;
+        ctx.beginPath();
+        ctx.lineWidth = Math.max(1, Math.abs(w) * 12 * state.scale);
+        ctx.strokeStyle = isActive ? (w > 0 ? COLORS.blue : COLORS.coral) : "#222";
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(outNode.x, outNode.y);
+        ctx.stroke();
+
+        const mx = (n.x + outNode.x)/2 - 40;
+        const my = (n.y + outNode.y)/2;
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.roundRect(mx - 25, my - 12, 50, 24, 4);
+        ctx.fill();
+        ctx.strokeStyle = "#333";
+        ctx.stroke();
+        
+        ctx.fillStyle = w >= 0 ? COLORS.blue : COLORS.coral;
+        ctx.font = `bold ${13 * state.scale}px 'Courier New'`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(w.toFixed(2), mx, my);
+    });
+
+    // 2. ノード
+    state.nodes.forEach((n, i) => {
+        const isActive = n.isOut ? (state.output === 1) : (state.inputs[i] === 1);
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, nodeRadius, 0, Math.PI*2);
+        ctx.fillStyle = "#0a0a0a";
+        ctx.fill();
+        ctx.strokeStyle = isActive ? (n.isOut ? COLORS.coral : COLORS.blue) : "#333";
+        ctx.lineWidth = isActive ? 3 : 1;
+        if(isActive) { ctx.shadowBlur = 20; ctx.shadowColor = ctx.strokeStyle; }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = isActive ? "#fff" : "#444";
+        ctx.font = `bold ${22 * state.scale}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(n.label, n.x, n.y);
+
+        ctx.font = `bold ${11 * state.scale}px sans-serif`;
+        const labelY = n.y + nodeRadius + 22;
+        if(!n.isOut) {
+            ctx.fillStyle = isActive ? COLORS.blue : "#444";
+            ctx.fillText(isActive ? "INPUT: ON" : "INPUT: OFF", n.x, labelY);
+        } else {
+            ctx.fillStyle = isActive ? COLORS.coral : "#444";
+            ctx.fillText(isActive ? "FIRE (発火中)" : "SILENT (沈黙)", n.x, labelY);
+        }
+    });
+
+    // 3. 閾値
+    const tx = outNode.x;
+    const ty = outNode.y + nodeRadius + 55;
+    const barW = 100 * state.scale;
+    ctx.fillStyle = "#222";
+    ctx.fillRect(tx - barW/2, ty, barW, 4);
+    const thPos = (state.threshold + 2) / 4;
+    const mx = tx - barW/2 + (Math.min(1, Math.max(0, thPos)) * barW);
+    ctx.fillStyle = COLORS.blue;
+    ctx.fillRect(mx - 2, ty - 6, 4, 16);
+    ctx.font = `9px sans-serif`;
+    ctx.fillText(`THRESHOLD (閾値) : ${state.threshold.toFixed(2)}`, tx, ty + 25);
+
+    requestAnimationFrame(animate);
+}
+
+canvas.addEventListener('click', (e) => {
+    if(state.isAnimating || state.isAuto) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    state.nodes.slice(0,3).forEach((n, i) => {
+        if(Math.hypot(n.x - x, n.y - y) < 40 * state.scale) {
+            state.inputs[i] = state.inputs[i] === 1 ? 0 : 1;
+            document.getElementById('btnTrain').disabled = true;
+            checkButtonStates();
+        }
+    });
+});
+
+document.getElementById('btnRun').addEventListener('click', predict);
+document.getElementById('btnTrain').addEventListener('click', train);
+document.getElementById('btnReset').addEventListener('click', () => location.reload());
+document.getElementById('btnAuto').addEventListener('click', toggleAutoPilot);
+
+init();
+</script>
+</body>
+</html>
